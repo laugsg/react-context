@@ -365,63 +365,134 @@
       }
       //#endregion
 
-      //#region ConnectedApp
-      class ConnectedApp extends React.Component {
-        render() {
-          return (
-            <Context.Consumer>
-              {(store) => <App store={store} />}
-            </Context.Consumer>
-          );
-        }
+      /*
+       * . Component
+       * It needs to returns a function that once it's invoked
+       * it gonna to be pass the component to be rendered
+       *
+       * . mapStateToProps
+       * As it's first argument it's gonna to be pass a function
+       * that once it's invoked it need to pass the state
+       * to get the specific data the component needs
+       *
+       * . Three things to keep in mind when build connect()()
+       * 1. know when the store changes - use store.subscribe
+       * 2. what state is needed - use mapStateToProps
+       * 3. get the store from Context
+       */
+      function connect (mapStateToProps) {
+        return (Component) => {
+          class Receiver extends React.Component {
+            /* 1. know when the store changes - use store.subscribe
+             * (componentDidMount & componentWillUnmount)
+             */
+            componentDidMount () {
+              const { subscribe } = this.props.store;
+
+              this.unsubscribe = subscribe(() => {
+                this.forceUpdate();
+              });
+            }
+            componentWillUnmount() {
+              this.unsubscribe();
+            }
+
+            /* 2. what state is needed - use mapStateToProps
+             * The actual needed state it does not come from mapStateToProps
+             * it comes from the object pass in when connect its invoked
+             * as it is in `ConnectedApp=connect((state)=>({loading:state.loading}))(App)`
+             *
+             * As Algebra, mapStateToProps is a reference
+             * to the function passed when a component is defined using connect()()
+             * the state arguments then refers to the actual value from getState()
+             * (which is invoked below from this.props.store)
+             * then is passed in to mapStateToProps which assign the value which
+             * each of connect definition apply to each component
+             * as ConnectedApp | ConnectedGoals | ConnectedTodos
+             * based in the object passed in to connect first argument
+             * as (state) => ({loading: state.loading}) or
+             * | (state) => ({goals: state.goals}) or
+             * | (state) => ({todos: state.todos})
+             * in mapStateToProps (that function: (state) => ({k:v}))
+             * the state argument becomes `state = getState()`
+             * then for `(state) => ({some: state.some})`
+             * state provides the values from store.state from store.getState()
+             * this allows to each definition to target just their desired properties 
+             * from the store.state object given the same object 
+             * but fully loaded of data
+             */
+            render() {
+              const { dispatch, getState } = this.props.store;
+              const state = getState();
+              const stateNeeded = mapStateToProps(state);
+
+              return <Component {...stateNeeded} dispatch={dispatch} />;
+            }
+          }
+
+          /* 3. get the store from Context */
+          class ConnectedComponent extends React.Component {
+            render() {
+              return (
+                <Context.Consumer>
+                  {(store) => <Receiver store={store} />}
+                </Context.Consumer>
+              );
+            }
+          }
+
+          
+          return ConnectedComponent;
+        };
       }
       //#endregion
 
       //#region ConnectedTodos
-      class ConnectedTodos extends React.Component {
-        render(){
-          return(
-            <Context.Consumer>
-              {(store) => {
-                const { todos } = store.getState()
-                return <Todos todos={todos} dispatch={store.dispatch}/>
-              }}
-            </Context.Consumer>
-          )
-        }
-      }
+      // class ConnectedTodos extends React.Component {
+      //   render(){
+      //     return(
+      //       <Context.Consumer>
+      //         {(store) => {
+      //           const { todos } = store.getState()
+      //           return <Todos todos={todos} dispatch={store.dispatch}/>
+      //         }}
+      //       </Context.Consumer>
+      //     )
+      //   }
+      // }
       //#endregion
 
       //#region ConnectedGoals
-      class ConnectedGoals extends React.Component {
-        render(){
-          return(
-            <Context.Consumer>
-              {(store) => {
-                const { goals } = store.getState()
-                return <Goals goals={goals} dispatch={store.dispatch} />
-              }}
-            </Context.Consumer>
-          )
-        }
-      }
+      // class ConnectedGoals extends React.Component {
+      //   render(){
+      //     return(
+      //       <Context.Consumer>
+      //         {(store) => {
+      //           const { goals } = store.getState()
+      //           return <Goals goals={goals} dispatch={store.dispatch} />
+      //         }}
+      //       </Context.Consumer>
+      //     )
+      //   }
+      // }
       //#endregion
 
       //#region App
       class App extends React.Component {
         componentDidMount() {
-          const { store } = this.props;
-
-          store.subscribe(() => this.forceUpdate());
-
-          store.dispatch(handleInitialData());
+          // const { store } = this.props;
+          // store.subscribe(() => this.forceUpdate());
+          // store.dispatch(handleInitialData());
+          const { dispatch } = this.props;
+          dispatch(handleInitialData());
         }
 
         render() {
-          const { store } = this.props;
-          const { loading } = store.getState();
+          // const { store } = this.props;
+          // const { loading } = store.getState();
+          // if (loading) return <h3>Loading...</h3>;
 
-          if (loading) return <h3>Loading...</h3>;
+          if (this.props.loading) return <h3>Loading...</h3>;
 
           return (
             <div>
@@ -432,6 +503,45 @@
         }
       }
       //#endregion
+
+      //#region ConnectedApp
+      // class ConnectedApp extends React.Component {
+      //   render() {
+      //     return (
+      //       <Context.Consumer>
+      //         {(store) => <App store={store} />}
+      //       </Context.Consumer>
+      //     );
+      //   }
+      // }
+      //#endregion
+
+      //#region connect()()
+      /* Concurring Pattern
+      * The fist function is invoked and returns a new function,
+      * this new function is received in the second set of parentheses, 
+      * finally the new function could be invoked in the second function.
+      * 
+      * In the first set of parentheses we pass in the data the component needs,
+      * in the second set of parentheses we pass in the component to be rendered.
+      * 
+      /* ConnectedApp
+      * We pass a function into the first set of parentheses,
+      * this function gonna to be pass the store,
+      * any properties that we return into an object 
+      * it would be pass as props to the component in the second function.
+      */
+      const ConnectedApp = connect((state) => ({
+        loading: state.loading,
+      }))(App);
+
+      const ConnectedGoals = connect((state) => ({
+        goals: state.goals,
+      }))(Goals);
+
+      const ConnectedTodos = connect((state) => ({
+        todos: state.todos,
+      }))(Todos);
 
       ReactDOM.render(
         <Provider store={store}>
