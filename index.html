@@ -385,14 +385,31 @@
       const ConnectedTodos = ReactRedux.connect((state) => ({
         todos: state.todos,
       }))(Todos);
+      //#endregion
 
-      ReactDOM.render(
+      /* New implementation
+      */
+      const root = ReactDOM.createRoot(document.getElementById("app"))
+      root.render(
         <ReactRedux.Provider store={store}>
           <ConnectedApp />
-        </ReactRedux.Provider>,
-        document.getElementById("app")
-      );
-      //#endregion
+        </ReactRedux.Provider>
+      )
+      // ReactDOM.render(
+      //   <ReactRedux.Provider store={store}>
+      //     <ConnectedApp />
+      //   </ReactRedux.Provider>,
+      //   document.getElementById("app")
+      // );
+
+      /* New implementation : forced
+      * this will cause errors.
+      */
+      // ReactDOM.createRoot(document.getElementById("app")).render(
+      //   <ReactRedux.Provider store={store}>
+      //     <ConnectedApp />
+      //   </ReactRedux.Provider>
+      // );
     </script>
   </body>
 </html>
