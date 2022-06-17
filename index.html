@@ -437,6 +437,7 @@
               const { dispatch, getState } = this.props.store;
               const state = getState();
               const stateNeeded = mapStateToProps(state);
+              // mapStateToProps : https://react-redux.js.org/using-react-redux/connect-mapstate
 
               return <Component {...stateNeeded} dispatch={dispatch} />;
             }
